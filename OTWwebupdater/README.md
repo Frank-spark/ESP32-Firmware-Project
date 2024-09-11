@@ -145,4 +145,3 @@ This project is licensed under the MIT License.
 ### Changes:
 - **Added Credit**: Mentioned that the web updater code is based on the Random Nerd Tutorials guide on **ESP32 Over-the-Air (OTA) Programming** with a link to the tutorial.
 
-This should meet your needs for crediting the source and combining both features into the README file. Let me know if further changes are needed!
