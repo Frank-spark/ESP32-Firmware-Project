@@ -1,6 +1,6 @@
-Here's the updated `README.md` with the mention of the code being heavily based on a tutorial:
 
-```markdown
+
+
 # WT32-ETH01 Web Updater with Socket.IO Client using Ethernet
 
 This project demonstrates how to set up the WT32-ETH01 (ESP32) module to use Ethernet for hosting a web-based firmware updater and simultaneously act as a Socket.IO client for real-time communication with a server.
