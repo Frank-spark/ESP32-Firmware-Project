@@ -142,6 +142,6 @@ socketIO.begin("your-server-address", 3000);  // Replace with your Socket.IO ser
 This project is licensed under the MIT License.
 ```
 
-### Changes:
-- **Added Credit**: Mentioned that the web updater code is based on the Random Nerd Tutorials guide on **ESP32 Over-the-Air (OTA) Programming** with a link to the tutorial.
+
+## Added Credit: This web updater code is based on the Random Nerd Tutorials guide on **ESP32 Over-the-Air (OTA) Programming** with a link to the tutorial.
 
