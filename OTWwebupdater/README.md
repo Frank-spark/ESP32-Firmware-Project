@@ -49,6 +49,8 @@ You will need the following libraries for this project. They can be installed th
 
 ## Installation
 
+**Note** Reference this article if it helps https://docs.espressif.com/projects/esp-idf/en/stable/esp32/hw-reference/esp32/get-started-ethernet-kit.html
+
 1. **Install ESP32 Board Package**:
    - Open the Arduino IDE.
    - Go to **File** -> **Preferences**.
