@@ -124,7 +124,7 @@ void setup() {
 
   setupWebUpdater();  // Start Web Updater
 
-  socketIO.begin("192, 168, 0, 11", 80);  // Replace with your Socket.IO server address
+  socketIO.begin("192.168.0.11", 80);  // Replace with your Socket.IO server address
   socketIO.onEvent(socketIOEvent);  // Listen for the "connect" event
 
   if (!MDNS.begin(host)) {
