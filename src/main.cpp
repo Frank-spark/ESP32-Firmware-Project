@@ -9,6 +9,7 @@
 #include <WiFi.h>
 #include <WebSocketsClient.h>
 #include <SocketIOclient.h>
+#include "index.h"
 
 // ----------------libraries already included will be shortened and ones bellow may be added as additional features are implemented-------------------
 
