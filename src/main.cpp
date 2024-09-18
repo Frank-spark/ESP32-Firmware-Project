@@ -15,7 +15,6 @@
 
 // #include <EthernetEspAT.h>
 // #include <WiFiEspAT.h>
-// #include <SocketIoClient.h>  
 // #include <esp_wifi.h>
 // #include <ArduinoWebsockets.h>
 // #include <AsyncWebSocket.h>
