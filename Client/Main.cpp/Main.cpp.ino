@@ -5,8 +5,8 @@
 #include <HTTPClient.h>
 
 // Network configuration
-IPAddress local_IP(192, 168, 1, 190);   // Static IP for ESP32 client
-IPAddress gateway(192, 168, 1, 254);
+IPAddress local_IP(192, 168, 8, 190);   // Static IP for ESP32 client
+IPAddress gateway(192, 168, 8, 1);
 IPAddress subnet(255, 255, 255, 0);
 IPAddress primaryDNS(8, 8, 8, 8);
 IPAddress secondaryDNS(8, 8, 4, 4);
@@ -42,7 +42,7 @@ void setup() {
   Serial.println(ETH.localIP());
 
   // Connect to the JavaScript server using Socket.IO
-  socketIO.begin("192.168.1.155", 3000);  // Replace with the JS server's IP and port
+  socketIO.begin("192.168.8.214", 3000);  // Replace with the JS server's IP and port
   socketIO.onEvent(socketIOEvent);        // Attach the event handler
 }
 
