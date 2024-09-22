@@ -54,7 +54,7 @@ wsServer.on('request', function(request) {
     // Handle messages from the client
     connection.on('message', function(message) {
         if (message.type === 'utf8') {
-            console.log('Received Message: ' + message.utf8Data);
+            console.log( message.utf8Data);
 
             // Broadcast message to all clients (including ESP32)
             clients.forEach(function(client) {
