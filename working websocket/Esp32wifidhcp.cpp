@@ -10,13 +10,13 @@ char host[] = "192.168.1.21:5000";
 WebSocketClient webSocketClient;
 WiFiClient client;
 
-// Pins for buttons and shift register (SN74HC595)
+// Pins for buttons  (SN74HC595)
 const int buttonPin1 = 18;  // GPIO for Key 1
 const int buttonPin2 = 19;  // GPIO for Key 2
 const int buttonPin3 = 21;  // GPIO for Key 3
 const int buttonPin4 = 23;  // GPIO for Key 4
 
-// Corrected pins for the SN74HC595 shift register
+//pins for the SN74HC595 shift register
 #define DATA_PIN   13  // SER pin on SN74HC595
 #define CLOCK_PIN  27  // SRCK pin on SN74HC595
 #define LATCH_PIN  14  // RCK pin on SN74HC595
@@ -40,7 +40,7 @@ int lastButtonState4 = HIGH;
 
 // Timing variables for ping
 unsigned long previousMillis = 0;
-const long pingInterval = 5000; // Send ping every 5 seconds
+const long pingInterval = 100; // Send ping every 5 seconds
 
 void setup() {
     Serial.begin(115200);
@@ -104,14 +104,27 @@ void writeToShiftRegister() {
     digitalWrite(LATCH_PIN, HIGH);  // Latch the data to the output pins
 }
 
-// Function to send a ping message to keep the WebSocket connection alive
-void sendPing() {
+// Function to send a ping message to keep the WebSocket connection alive and transmit state
+void sendButtonStates() {
+    // Read the current state of all buttons
+    int button1State = digitalRead(buttonPin1) == LOW ? 1 : 0;
+    int button2State = digitalRead(buttonPin2) == LOW ? 1 : 0;
+    int button3State = digitalRead(buttonPin3) == LOW ? 1 : 0;
+    int button4State = digitalRead(buttonPin4) == LOW ? 1 : 0;
+
+    // Format the message as "1,0,0,1" for the button states
+    String buttonStates = String(button1State) + "," + 
+                          String(button2State) + "," + 
+                          String(button3State) + "," + 
+                          String(button4State);
+
+    // Send the button states via WebSocket if connected
     if (client.connected()) {
-        String pingMessage = "ping";
-        webSocketClient.sendData(pingMessage);
-        Serial.println("Ping sent to keep connection alive.");
+        webSocketClient.sendData(buttonStates);
+        Serial.println("Button states sent: " + buttonStates);
     }
 }
+
 
 void loop() {
     String data;
@@ -217,8 +230,9 @@ void loop() {
     unsigned long currentMillis = millis();
     if (currentMillis - previousMillis >= pingInterval) {
         previousMillis = currentMillis;
-        sendPing();
+      sendButtonStates();
+
     }
 
-    delay(300);  // Small delay to prevent overwhelming the loop
+    delay(100);  // Small delay to prevent overwhelming the loop
 }
