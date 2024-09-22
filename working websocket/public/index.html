@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ESP32 Relay Control</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 50px;
+    }
+    button {
+      padding: 15px;
+      font-size: 18px;
+      margin: 10px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>ESP32 Relay Control</h1>
+  <button id="relay1_on">Relay 1 ON</button>
+  <button id="relay1_off">Relay 1 OFF</button>
+  <br>
+  <button id="relay2_on">Relay 2 ON</button>
+  <button id="relay2_off">Relay 2 OFF</button>
+
+  <h2 id="status">Status: Disconnected</h2>
+
+  <script>
+    const statusEl = document.getElementById('status');
+    const relay1OnBtn = document.getElementById('relay1_on');
+    const relay1OffBtn = document.getElementById('relay1_off');
+    const relay2OnBtn = document.getElementById('relay2_on');
+    const relay2OffBtn = document.getElementById('relay2_off');
+
+    // Create WebSocket connection
+    const socket = new WebSocket('ws://192.168.1.221:5000');
+
+    // WebSocket events
+    socket.onopen = () => {
+      statusEl.innerText = 'Status: Connected';
+      console.log('WebSocket connected');
+    };
+
+    socket.onmessage = (event) => {
+      console.log('Received:', event.data);
+    };
+
+    socket.onclose = () => {
+      statusEl.innerText = 'Status: Disconnected';
+      console.log('WebSocket disconnected');
+    };
+
+    // Relay button event listeners
+    relay1OnBtn.addEventListener('click', () => {
+      socket.send('relay1_on');
+    });
+
+    relay1OffBtn.addEventListener('click', () => {
+      socket.send('relay1_off');
+    });
+
+    relay2OnBtn.addEventListener('click', () => {
+      socket.send('relay2_on');
+    });
+
+    relay2OffBtn.addEventListener('click', () => {
+      socket.send('relay2_off');
+    });
+  </script>
+</body>
+</html>
