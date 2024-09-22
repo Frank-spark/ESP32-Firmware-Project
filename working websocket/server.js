@@ -32,11 +32,8 @@ var wsServer = new WebSocketServer({
     autoAcceptConnections: false // Security: Disable auto-accepting connections
 });
 
-// Function to check if the origin is allowed
-function originIsAllowed(origin) {
-    // In production, you should filter origins here. For now, allow all.
-    return true;
-}
+// Store all connections in an array
+var clients = [];
 
 // Handle WebSocket connection requests
 wsServer.on('request', function(request) {
@@ -51,6 +48,7 @@ wsServer.on('request', function(request) {
 
     // Accept the connection
     var connection = request.accept(null, request.origin);
+    clients.push(connection);  // Add new client to the list
     console.log((new Date()) + ' Connection accepted.');
 
     // Handle messages from the client
@@ -58,14 +56,29 @@ wsServer.on('request', function(request) {
         if (message.type === 'utf8') {
             console.log('Received Message: ' + message.utf8Data);
 
-            // Respond to the client
-            connection.sendUTF("Message received: " + message.utf8Data);
+            // Broadcast message to all clients (including ESP32)
+            clients.forEach(function(client) {
+                if (client !== connection) {  // Don't send to the sender
+                    client.sendUTF(message.utf8Data);
+                }
+            });
         }
     });
 
     // Handle connection closure
     connection.on('close', function(reasonCode, description) {
         console.log((new Date()) + ' Peer ' + connection.remoteAddress + ' disconnected.');
+        
+        // Remove client from the list
+        clients = clients.filter(function(client) {
+            return client !== connection;
+        });
     });
 });
+
+// Function to check if the origin is allowed
+function originIsAllowed(origin) {
+    // In production, you should filter origins here. For now, allow all.
+    return true;
+}
 
