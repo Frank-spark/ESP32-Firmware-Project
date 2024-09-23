@@ -1,0 +1,2 @@
+const char* ssid = "Special Projects-5GHz";
+const char* password = "sprojects1!";

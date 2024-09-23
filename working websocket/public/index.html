@@ -25,18 +25,50 @@
   <br>
   <button id="relay2_on">Relay 2 ON</button>
   <button id="relay2_off">Relay 2 OFF</button>
+  <br>
+  <button id="relay3_on">Relay 3 ON</button>
+  <button id="relay3_off">Relay 3 OFF</button>
+  <br>
+  <button id="relay4_on">Relay 4 ON</button>
+  <button id="relay4_off">Relay 4 OFF</button>
+  <br>
+  <button id="relay5_on">Relay 5 ON</button>
+  <button id="relay5_off">Relay 5 OFF</button>
+  <br>
+  <button id="relay6_on">Relay 6 ON</button>
+  <button id="relay6_off">Relay 6 OFF</button>
+  <br>
+  <button id="relay7_on">Relay 7 ON</button>
+  <button id="relay7_off">Relay 7 OFF</button>
+  <br>
+  <button id="relay8_on">Relay 8 ON</button>
+  <button id="relay8_off">Relay 8 OFF</button>
 
   <h2 id="status">Status: Disconnected</h2>
 
   <script>
     const statusEl = document.getElementById('status');
+    
+    // Buttons for relays
     const relay1OnBtn = document.getElementById('relay1_on');
     const relay1OffBtn = document.getElementById('relay1_off');
     const relay2OnBtn = document.getElementById('relay2_on');
     const relay2OffBtn = document.getElementById('relay2_off');
+    const relay3OnBtn = document.getElementById('relay3_on');
+    const relay3OffBtn = document.getElementById('relay3_off');
+    const relay4OnBtn = document.getElementById('relay4_on');
+    const relay4OffBtn = document.getElementById('relay4_off');
+    const relay5OnBtn = document.getElementById('relay5_on');
+    const relay5OffBtn = document.getElementById('relay5_off');
+    const relay6OnBtn = document.getElementById('relay6_on');
+    const relay6OffBtn = document.getElementById('relay6_off');
+    const relay7OnBtn = document.getElementById('relay7_on');
+    const relay7OffBtn = document.getElementById('relay7_off');
+    const relay8OnBtn = document.getElementById('relay8_on');
+    const relay8OffBtn = document.getElementById('relay8_off');
 
     // Create WebSocket connection
-    const socket = new WebSocket('ws://192.168.1.21:5000');
+    const socket = new WebSocket('ws://192.168.1.221:5000');
 
     // WebSocket events
     socket.onopen = () => {
@@ -68,6 +100,54 @@
 
     relay2OffBtn.addEventListener('click', () => {
       socket.send('relay2_off');
+    });
+
+    relay3OnBtn.addEventListener('click', () => {
+      socket.send('relay3_on');
+    });
+
+    relay3OffBtn.addEventListener('click', () => {
+      socket.send('relay3_off');
+    });
+
+    relay4OnBtn.addEventListener('click', () => {
+      socket.send('relay4_on');
+    });
+
+    relay4OffBtn.addEventListener('click', () => {
+      socket.send('relay4_off');
+    });
+
+    relay5OnBtn.addEventListener('click', () => {
+      socket.send('relay5_on');
+    });
+
+    relay5OffBtn.addEventListener('click', () => {
+      socket.send('relay5_off');
+    });
+
+    relay6OnBtn.addEventListener('click', () => {
+      socket.send('relay6_on');
+    });
+
+    relay6OffBtn.addEventListener('click', () => {
+      socket.send('relay6_off');
+    });
+
+    relay7OnBtn.addEventListener('click', () => {
+      socket.send('relay7_on');
+    });
+
+    relay7OffBtn.addEventListener('click', () => {
+      socket.send('relay7_off');
+    });
+
+    relay8OnBtn.addEventListener('click', () => {
+      socket.send('relay8_on');
+    });
+
+    relay8OffBtn.addEventListener('click', () => {
+      socket.send('relay8_off');
     });
   </script>
 </body>

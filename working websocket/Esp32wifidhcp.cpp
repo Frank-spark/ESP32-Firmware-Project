@@ -1,10 +1,10 @@
 #include <WiFi.h>
 #include <WebSocketClient.h>
 
-const char* ssid     = "NETGEAR60";
-const char* password = "";
+const char* ssid     = "Special Projects-5GHz";
+const char* password = "sprojects1!";
 char path[] = "/";
-char host[] = "192.168.1.21:5000";
+char host[] = "192.168.1.221:5000";
 
 // WebSocket client and WiFi client
 WebSocketClient webSocketClient;
@@ -40,7 +40,7 @@ int lastButtonState4 = HIGH;
 
 // Timing variables for ping
 unsigned long previousMillis = 0;
-const long pingInterval = 100; // Send ping every 5 seconds
+const long pingInterval = 100; // Send ping every 100 ms
 
 void setup() {
     Serial.begin(115200);
@@ -74,11 +74,11 @@ void setup() {
     Serial.println(WiFi.localIP());
 
     // Connect to WebSocket server
-    if (client.connect("192.168.1.21", 5000)) {
+    if (client.connect("192.168.1.221", 5000)) {
         Serial.println("Connected");
     } else {
         Serial.println("Connection failed.");
-        while(1);  // Hang on failure
+        connectToWebSocket();  // attempt reconnect
     }
 
     // Handshake with the WebSocket server
@@ -88,9 +88,29 @@ void setup() {
         Serial.println("Handshake successful");
     } else {
         Serial.println("Handshake failed.");
-        while(1);  // Hang on failure
+        connectToWebSocket();  // attempt reconnect
     }
 }
+void connectToWebSocket() {
+    // Try to connect to the WebSocket server
+    while (!client.connect("192.168.1.221", 5000)) {
+        Serial.println("Connection failed. Retrying in 5 seconds...");
+        delay(5000);  // Wait 5 seconds before retrying
+    }
+    Serial.println("Connected");
+
+    // Try WebSocket handshake
+    webSocketClient.path = path;
+    webSocketClient.host = host;
+    
+    while (!webSocketClient.handshake(client)) {
+        Serial.println("Handshake failed. Retrying in 1 second...");
+        delay(1000);  // Wait 5 seconds before retrying handshake
+    }
+    
+    Serial.println("Handshake successful");
+}
+
 
 // Function to send data to all three shift registers
 void writeToShiftRegister() {
@@ -129,103 +149,78 @@ void sendButtonStates() {
 void loop() {
     String data;
 
+
+ if (!client.connected()) {
+        Serial.println("Disconnected from WebSocket, attempting to reconnect...");
+        connectToWebSocket();
+    }
     // Receive WebSocket data from HTML page
-    if (webSocketClient.getData(data)) {
-        if (data.length() > 0) {
-            Serial.println("Received data: " + data);
+if (webSocketClient.getData(data)) {
+    if (data.length() > 0) {
+        Serial.println("Received data: " + data);
+        // Relay 1 ON/OFF (controlled by third shift register, pin 16)
+        //    if (data == "relay1_on") {
+        //        relayState[2] |= B00000001;  // Turn on relay 1 (pin 16)
+        //        writeToShiftRegister();
+        //        Serial.println("Relay 1 ON");
+        //    } else if (data == "relay1_off") {
+        //        relayState[2] &= ~B00000001;  // Turn off relay 1 (pin 16)
+        //        writeToShiftRegister();
+        //      Serial.println("Relay 1 OFF");
+        //    }consolodated looping thru the shift regester into one funtion
+        // Loop through the relays from 1 to 8
+        for (int i = 1; i <= 8; i++) {
+            String relayOnCmd = "relay" + String(i) + "_on";
+            String relayOffCmd = "relay" + String(i) + "_off";
             
-            // Relay 1 ON/OFF (controlled by third shift register, pin 16)
-            if (data == "relay1_on") {
-                relayState[2] |= B00000001;  // Turn on relay 1 (pin 16)
+            if (data == relayOnCmd) {
+                relayState[2] |= (1 << (i - 1));  // Turn on relay (shift corresponding bit)
                 writeToShiftRegister();
-                Serial.println("Relay 1 ON");
-            } else if (data == "relay1_off") {
-                relayState[2] &= ~B00000001;  // Turn off relay 1 (pin 16)
+                Serial.println("Relay " + String(i) + " ON");
+            } else if (data == relayOffCmd) {
+                relayState[2] &= ~(1 << (i - 1));  // Turn off relay (clear corresponding bit)
                 writeToShiftRegister();
-                Serial.println("Relay 1 OFF");
+                Serial.println("Relay " + String(i) + " OFF");
             }
-            
-            // Relay 2 ON/OFF (pin 17)
-            if (data == "relay2_on") {
-                relayState[2] |= B00000010;  // Turn on relay 2 (pin 17)
-                writeToShiftRegister();
-                Serial.println("Relay 2 ON");
-            } else if (data == "relay2_off") {
-                relayState[2] &= ~B00000010;  // Turn off relay 2 (pin 17)
-                writeToShiftRegister();
-                Serial.println("Relay 2 OFF");
-            }
-
-            // Relay 3 ON/OFF (pin 18)
-            if (data == "relay3_on") {
-                relayState[2] |= B00000100;  // Turn on relay 3 (pin 18)
-                writeToShiftRegister();
-                Serial.println("Relay 3 ON");
-            } else if (data == "relay3_off") {
-                relayState[2] &= ~B00000100;  // Turn off relay 3 (pin 18)
-                writeToShiftRegister();
-                Serial.println("Relay 3 OFF");
-            }
-
-            // Relay 4 ON/OFF (pin 19)
-            if (data == "relay4_on") {
-                relayState[2] |= B00001000;  // Turn on relay 4 (pin 19)
-                writeToShiftRegister();
-                Serial.println("Relay 4 ON");
-            } else if (data == "relay4_off") {
-                relayState[2] &= ~B00001000;  // Turn off relay 4 (pin 19)
-                writeToShiftRegister();
-                Serial.println("Relay 4 OFF");
-            }
-
-            // Repeat for relays 5-8 (pins 20-23) if needed
         }
     }
+}
 
     // Physical Key Control for all 4 buttons
 
     // If Key 1 is pressed (transition from HIGH to LOW)
-    buttonState1 = digitalRead(buttonPin1);
-    if (buttonState1 == LOW && lastButtonState1 == HIGH) {
-        relayState[2] ^= B00000001;  // Toggle relay 1 (pin 16)
+    //buttonState1 = digitalRead(buttonPin1);
+    //if (buttonState1 == LOW && lastButtonState1 == HIGH) {
+    //    relayState[2] ^= B00000001;  // Toggle relay 1 (pin 16)
+    //    writeToShiftRegister();
+    //    Serial.println("Key 1 pressed, relay 1 toggled.");
+    //     webSocketClient.sendData("Key 1 pressed!");
+    //}consolodated the 4 buttons in to one funtion
+
+    for (int i = 0; i < 4; i++) {
+    // Get correct button pin for each iteration
+    int buttonPin = (i == 0) ? buttonPin1 : (i == 1) ? buttonPin2 : (i == 2) ? buttonPin3 : buttonPin4;
+    
+    // Read current button state
+    int buttonState = digitalRead(buttonPin);
+    
+    // Get correct last button state
+    int lastButtonState = (i == 0) ? lastButtonState1 : (i == 1) ? lastButtonState2 : (i == 2) ? lastButtonState3 : lastButtonState4;
+
+    // Check if button is pressed (transition from HIGH to LOW)
+    if (buttonState == LOW && lastButtonState == HIGH) {
+        relayState[2] ^= (1 << i);  // Toggle the correct relay
         writeToShiftRegister();
-        Serial.println("Key 1 pressed, relay 1 toggled.");
-        webSocketClient.sendData("Key 1 pressed!");
+        Serial.println("Key " + String(i + 1) + " pressed, relay " + String(i + 1) + " toggled.");
+        webSocketClient.sendData("Key " + String(i + 1) + " pressed!");
     }
 
-    // If Key 2 is pressed (transition from HIGH to LOW)
-    buttonState2 = digitalRead(buttonPin2);
-    if (buttonState2 == LOW && lastButtonState2 == HIGH) {
-        relayState[2] ^= B00000010;  // Toggle relay 2 (pin 17)
-        writeToShiftRegister();
-        Serial.println("Key 2 pressed, relay 2 toggled.");
-        webSocketClient.sendData("Key 2 pressed!");
-    }
-
-    // If Key 3 is pressed (transition from HIGH to LOW)
-    buttonState3 = digitalRead(buttonPin3);
-    if (buttonState3 == LOW && lastButtonState3 == HIGH) {
-        relayState[2] ^= B00000100;  // Toggle relay 3 (pin 18)
-        writeToShiftRegister();
-        Serial.println("Key 3 pressed, relay 3 toggled.");
-        webSocketClient.sendData("Key 3 pressed!");
-    }
-
-    // If Key 4 is pressed (transition from HIGH to LOW)
-    buttonState4 = digitalRead(buttonPin4);
-    if (buttonState4 == LOW && lastButtonState4 == HIGH) {
-        relayState[2] ^= B00001000;  // Toggle relay 4 (pin 19)
-        writeToShiftRegister();
-        Serial.println("Key 4 pressed, relay 4 toggled.");
-        webSocketClient.sendData("Key 4 pressed!");
-    }
-
-    // Update last button states
-    lastButtonState1 = buttonState1;
-    lastButtonState2 = buttonState2;
-    lastButtonState3 = buttonState3;
-    lastButtonState4 = buttonState4;
-
+    // Update the correct last button state
+    if (i == 0) lastButtonState1 = buttonState;
+    else if (i == 1) lastButtonState2 = buttonState;
+    else if (i == 2) lastButtonState3 = buttonState;
+    else lastButtonState4 = buttonState;
+}
     // Send a ping message every 5 seconds to keep connection alive
     unsigned long currentMillis = millis();
     if (currentMillis - previousMillis >= pingInterval) {
