@@ -10,7 +10,7 @@ SocketIoClient socketIoClient;  // Socket.IO client object
 
 // Timer variables for periodic tasks
 unsigned long previousMillis = 0;
-const long pingInterval = 100;  // Ping interval in milliseconds
+const long pingInterval = 2000;  // Ping interval in milliseconds
 
 void setup() {
     // Initialize serial for debugging
@@ -28,12 +28,27 @@ void setup() {
 
     // Initialize Socket.IO connection
     socketIoClient.begin(host, port);  // Connect to Socket.IO server
+
+    // Listen for 'hello' event from server
+    socketIoClient.on("hello", helloEvent);  // Set callback function for hello event
 }
 
 void sendPing() {
-    // Emit a ping event to keep the connection alive
-    socketIoClient.emit("ping", "Ping from ESP32");  // Send a ping message to server
+    // Emit a properly formatted ping message as a JSON string
+    String jsonPayload = "{\"message\":\"Ping from ESP32\"}";
+    socketIoClient.emit("ping", jsonPayload.c_str());  // Send JSON message to server
     Serial.println("Ping sent to server");
+}
+
+// Callback function for hello event
+void helloEvent(const char * payload, size_t length) {
+    Serial.print("Hello event received from server: ");
+    Serial.println(payload);  // Print the hello message from the server
+
+    // Send a 'pong_received' message back to the server in proper format
+    String jsonResponse = "{\"message\":\"Pong message received by ESP32\"}";
+    socketIoClient.emit("pong_received", jsonResponse.c_str());  // Send acknowledgment back to server
+    Serial.println("Pong received message sent back to server");
 }
 
 void loop() {
