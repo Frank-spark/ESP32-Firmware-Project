@@ -1,5 +1,7 @@
 #include <WiFi.h>
 #include <SocketIoClient.h>
+#include <ESPAsyncWebServer.h>
+#include <Update.h>  // For OTA updates
 
 const char* ssid     = "Special Projects-5GHz";
 const char* password = "sprojects1!";
@@ -7,6 +9,7 @@ char host[] = "192.168.1.221";
 int port = 5000;
 
 SocketIoClient socketIoClient;
+AsyncWebServer server(80);  // Create AsyncWebServer object on port 80
 
 // Pins for buttons (SN74HC595)
 const int buttonPin1 = 18;
@@ -26,7 +29,7 @@ int buttonState1 = HIGH, buttonState2 = HIGH, buttonState3 = HIGH, buttonState4 
 int lastButtonState1 = HIGH, lastButtonState2 = HIGH, lastButtonState3 = HIGH, lastButtonState4 = HIGH;
 
 unsigned long previousMillis = 0;
-const long pingInterval = 100;
+const long pingInterval = 2000;
 
 // Function to write data to the shift register
 void writeToShiftRegister() {
@@ -64,15 +67,77 @@ void sendButtonStates() {
     int button3State = digitalRead(buttonPin3) == LOW ? 1 : 0;
     int button4State = digitalRead(buttonPin4) == LOW ? 1 : 0;
 
-    String buttonStates = "{\"button1\": " + String(button1State) +
-                         ", \"button2\": " + String(button2State) +
-                         ", \"button3\": " + String(button3State) +
-                         ", \"button4\": " + String(button4State) + "}";
+    String buttonStates = "{\"Button1\": " + String(button1State) +
+                         ", \"Button2\": " + String(button2State) +
+                         ", \"Button3\": " + String(button3State) +
+                         ", \"Button4\": " + String(button4State) + "}";
 
     socketIoClient.emit("button_states", buttonStates.c_str());
     Serial.println("Button states sent: " + buttonStates);
 }
 
+// Function to create a JSON string of the button states
+String getButtonStatesJSON() {
+    int button1State = digitalRead(buttonPin1) == LOW ? 1 : 0;
+    int button2State = digitalRead(buttonPin2) == LOW ? 1 : 0;
+    int button3State = digitalRead(buttonPin3) == LOW ? 1 : 0;
+    int button4State = digitalRead(buttonPin4) == LOW ? 1 : 0;
+
+    String buttonStates = "{\"button1\": " + String(button1State) +
+                         ", \"button2\": " + String(button2State) +
+                         ", \"button3\": " + String(button3State) +
+                         ", \"button4\": " + String(button4State) + "}";
+    return buttonStates;
+}
+// Handle the file upload for OTA updates
+void handleOTAUpdate(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final) {
+    if (!index) {
+        Serial.printf("UploadStart: %s\n", filename.c_str());
+        if (!Update.begin(UPDATE_SIZE_UNKNOWN)) {  // Begin OTA update
+            Update.printError(Serial);
+        }
+    }
+
+    // Write the data to the flash memory
+    if (Update.write(data, len) != len) {
+        Update.printError(Serial);
+    }
+
+    if (final) {  // Finish the update
+        if (Update.end(true)) {
+            Serial.printf("UpdateSuccess: %s\n", filename.c_str());
+        } else {
+            Update.printError(Serial);
+        }
+    }
+}
+
+// Function to serve the webpage that shows button states and provides file upload for OTA
+void serveWebPage() {
+    server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
+        String htmlPage = "<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">";
+        htmlPage += "<title>ESP32 Button States</title></head><body>";
+        htmlPage += "<h1>Button States</h1><div id='buttonStates'>Loading...</div>";
+        htmlPage += "<script>setInterval(function() {fetch('/button_states').then(response => response.json()).then(data => {";
+        htmlPage += "document.getElementById('buttonStates').innerHTML = 'Button 1: ' + data.button1 + '<br>Button 2: ' + data.button2 + '<br>Button 3: ' + data.button3 + '<br>Button 4: ' + data.button4;";
+        htmlPage += "});}, 2000);</script>";
+
+        // Add a form for uploading firmware
+        htmlPage += "<h2>Upload Firmware (.bin)</h2><form method='POST' action='/update' enctype='multipart/form-data'>";
+        htmlPage += "<input type='file' name='update'><input type='submit' value='Update Firmware'></form>";
+        htmlPage += "</body></html>";
+        request->send(200, "text/html", htmlPage);
+    });
+
+    // Serve the button states as JSON data
+    server.on("/button_states", HTTP_GET, [](AsyncWebServerRequest *request){
+        String json = getButtonStatesJSON();
+        request->send(200, "application/json", json);
+    });
+    // Handle firmware update via file upload
+    server.onFileUpload(handleOTAUpdate);
+    server.begin();  // Start the server
+}
 
 // Setup function
 void setup() {
@@ -102,10 +167,14 @@ void setup() {
         Serial.print(".");
     }
     Serial.println("Connected to WiFi.");
-
+    Serial.print("Assigned IP address: ");
+    Serial.println(WiFi.localIP());
     // Initialize Socket.IO connection
     socketIoClient.begin(host, port);
     socketIoClient.on("relay_control", relayControlEvent);  // Event listener for relay control
+
+    // Start web server to serve button states page
+    serveWebPage();
 }
 
 // Loop function
@@ -141,5 +210,3 @@ void loop() {
         sendButtonStates();
     }
 }
-
-
