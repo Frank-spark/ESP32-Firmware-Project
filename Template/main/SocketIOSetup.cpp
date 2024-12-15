@@ -46,6 +46,33 @@ void webSocketEvent(WStype_t type, uint8_t *payload, size_t length) {
             break;
     }
 }
+void handleWebSocketEvent(WStype_t type, uint8_t *payload, size_t length) {
+    switch (type) {
+        case WStype_DISCONNECTED:
+            Serial.println("WebSocket disconnected.");
+            break;
+
+        case WStype_CONNECTED:
+            Serial.println("WebSocket connected.");
+            // No need to manually send a ping here; let the library handle it.
+            break;
+
+        case WStype_TEXT:
+            Serial.printf("Received: %s\n", payload);
+            break;
+
+        case WStype_PING:
+            Serial.println("Ping received.");
+            break;
+
+        case WStype_PONG:
+            Serial.println("Pong received.");
+            break;
+
+        default:
+            break;
+    }
+}
 
 void setupSocketIO() {
     webSocket.begin(socketServerHost, socketServerPort, "/socket.io/?EIO=4&transport=websocket");

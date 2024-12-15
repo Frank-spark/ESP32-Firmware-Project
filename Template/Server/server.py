@@ -3,7 +3,8 @@ import socketio
 import eventlet
 
 # Create a Socket.IO server instance
-sio = socketio.Server(cors_allowed_origins="*")
+sio = socketio.Server(cors_allowed_origins="*", ping_timeout=60, ping_interval=25)
+
 
 # Create a Flask app
 app = Flask(__name__)
@@ -25,6 +26,8 @@ def handle_heartbeat(sid, data):
     print(f"Heartbeat received from {sid}: {data}")
     sio.emit("pong", {"status": "alive"}, to=sid)
 
+
+
 @sio.event
 def disconnect(sid):
     print(f"Client disconnected: {sid}")
@@ -40,22 +43,3 @@ if __name__ == "__main__":
 from flask import Flask
 import socketio
 
-app = Flask(__name__)
-sio = socketio.Server(cors_allowed_origins="*")
-app = socketio.WSGIApp(sio, app)
-
-@sio.on('set_brightness')
-def handle_set_brightness(sid, data):
-    print(f"Received brightness: {data}")
-    # Forward to ESP32 or other handling logic here
-    sio.emit('update_brightness', {'brightness': data})
-
-@sio.on('set_level')
-def handle_set_level(sid, data):
-    print(f"Received level: {data}")
-    # Forward to ESP32 or other handling logic here
-    sio.emit('update_level', {'level': data})
-
-if __name__ == '__main__':
-    import eventlet
-    eventlet.wsgi.server(eventlet.listen(('0.0.0.0', 3000)), app)
