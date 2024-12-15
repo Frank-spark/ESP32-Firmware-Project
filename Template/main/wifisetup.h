@@ -4,9 +4,7 @@
 #include <WiFi.h>
 #include <WebServer.h>
 
-extern WebServer server;
-
+extern WebServer otaServer; // Externally declare otaServer
 void setupWiFiAndWebServer();
-
 
 #endif
