@@ -3,7 +3,9 @@ import socketio
 import eventlet
 
 # Create a Socket.IO server instance
-sio = socketio.Server(cors_allowed_origins="*", ping_timeout=60, ping_interval=25)
+sio = socketio.Server(cors_allowed_origins="*", ping_timeout=120, ping_interval=30)
+
+
 
 
 # Create a Flask app
@@ -21,10 +23,16 @@ def connect(sid, environ):
     print(f"Client connected: {sid}")
     sio.emit("setDelayTime", {"setDelayTime": 1000}, to=sid)
 
+
 @sio.on("heartbeat")
 def handle_heartbeat(sid, data):
     print(f"Heartbeat received from {sid}: {data}")
-    sio.emit("pong", {"status": "alive"}, to=sid)
+    sio.emit("2", {}, to=sid)  # Respond with a pong
+
+
+@sio.on("message")
+def handle_message(sid, data):
+    print(f"Message from {sid}: {data}")
 
 
 

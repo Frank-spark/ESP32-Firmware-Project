@@ -87,10 +87,11 @@ void handleSocketIO() {
     webSocket.loop();
 
     // Send a periodic heartbeat
-    if (millis() - lastPingTime >= 20000) { // Send ping every 20 seconds
+    if (millis() - lastPingTime >= 20000) { // Send ping every 10 seconds
         String pingMessage = "42[\"heartbeat\",{\"status\":\"alive\"}]";
         webSocket.sendTXT(pingMessage);
         lastPingTime = millis();
         Serial.println(F("Sent heartbeat ping"));
     }
 }
+
