@@ -3,7 +3,7 @@
 
 #include <WiFi.h>
 #include <WebServer.h>
-
+//this will be ethernet in production code using wifi for ease of testing
 extern WebServer otaServer; // Externally declare otaServer
 void setupWiFiAndWebServer();
 

@@ -1,11 +1,13 @@
 from flask import Flask, request
 import socketio
 import eventlet
+import logging
 
 # Create a Socket.IO server instance
 sio = socketio.Server(cors_allowed_origins="*", ping_timeout=120, ping_interval=30)
 
-
+logging.basicConfig(level=logging.DEBUG)
+sio = socketio.Server(logger=True, engineio_logger=True)
 
 
 # Create a Flask app
@@ -30,16 +32,23 @@ def handle_heartbeat(sid, data):
     sio.emit("2", {}, to=sid)  # Respond with a pong
 
 
+
 @sio.on("message")
 def handle_message(sid, data):
     print(f"Message from {sid}: {data}")
 
-
+@sio.on("*")  # Catch all events
+def catch_all_events(event, sid, data):
+    print(f"Event: {event}, SID: {sid}, Data: {data}")
 
 @sio.event
 def disconnect(sid):
     print(f"Client disconnected: {sid}")
+@sio.on("message")
 
+def handle_message(sid, data):
+    print(f"Message received from {sid}: {data}")
+    
 # Run the server
 if __name__ == "__main__":
     # Wrap the Flask app with Socket.IO

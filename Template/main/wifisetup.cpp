@@ -4,10 +4,13 @@
 #include <ArduinoOTA.h>
 
 WebServer otaServer(8080); // Instantiate otaServer on port 8080
-
+//this will be ethernet in production code using wifi for ease of testing
 // WiFi credentials
-const char* ssid = "NETGEAR60";
-const char* password = "";
+//const char* ssid = "NETGEAR60";
+//const char* password = "";
+
+const char* ssid = "Special Projects-5GHz";
+const char* password = "sprojects1!";
 
 void setupWiFiAndWebServer() {
     // Connect to WiFi

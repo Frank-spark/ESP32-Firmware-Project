@@ -1,97 +1,81 @@
 #include "SocketIOSetup.h"
-#include <WebSocketsClient.h>
+#include "SocketIOCalls.h"
 #include <ArduinoJson.h>
-#include "wifisetup.h"
+#include <SocketIOclient.h>
 
-// Declare the WebSocketsClient
-WebSocketsClient webSocket;
+// Ping interval
+unsigned long lastPingTime = 0;
+const unsigned long pingInterval = 5000;
 
-// Server settings
-const char* socketServerHost = "192.168.1.9"; // Replace with your server's IP
-const uint16_t socketServerPort = 3000;       // Replace with your server's port
+SocketIOclient socketIO;
 
-unsigned long lastPingTime = 0; // For heartbeat pings
-
-void webSocketEvent(WStype_t type, uint8_t *payload, size_t length) {
+// Event handler
+void socketIOEvent(socketIOmessageType_t type, uint8_t* payload, size_t length) {
     switch (type) {
-        case WStype_DISCONNECTED:
-            Serial.println("WebSocket disconnected.");
+        case sIOtype_DISCONNECT:
+            Serial.println("[IOc] Disconnected!");
             break;
 
-        case WStype_CONNECTED:
-            Serial.println("WebSocket connected.");
+        case sIOtype_CONNECT:
+            Serial.printf("[IOc] Connected to URL: %s\n", payload);
+            socketIO.send(sIOtype_CONNECT, "/"); // Join the default namespace
             break;
 
-        case WStype_TEXT:
-            Serial.printf("Received: %s\n", payload);
-            // Ignore protocol messages like "0{...}" or "2"
-            if (payload[0] == '4' && payload[1] == '2') { // Socket.IO message frame
-                // Extract the JSON message from the payload
-                String message = String((char *)payload + 2); // Skip "42"
-                StaticJsonDocument<256> doc;
-                DeserializationError error = deserializeJson(doc, message);
-                if (error) {
-                    Serial.print("JSON deserialization failed: ");
-                    Serial.println(error.c_str());
-                } else {
-                    // Handle your JSON message
-                    Serial.println("Parsed JSON:");
-                    serializeJson(doc, Serial);
-                    Serial.println();
-                }
+        case sIOtype_EVENT: {
+            Serial.println("[IOc] Event received");
+            DynamicJsonDocument doc(1024);
+            DeserializationError error = deserializeJson(doc, payload, length);
+            if (error) {
+                Serial.printf("[IOc] JSON Parse Error: %s\n", error.c_str());
+                return;
             }
+
+            String eventName = doc[0];
+            Serial.printf("[IOc] Event Name: %s\n", eventName.c_str());
+            handleSocketIOCalls(eventName, doc[1]);
+            break;
+        }
+
+        case sIOtype_ACK:
+            Serial.printf("[IOc] ACK received, length: %u\n", length);
             break;
 
         default:
-            break;
-    }
-}
-void handleWebSocketEvent(WStype_t type, uint8_t *payload, size_t length) {
-    switch (type) {
-        case WStype_DISCONNECTED:
-            Serial.println("WebSocket disconnected.");
-            break;
-
-        case WStype_CONNECTED:
-            Serial.println("WebSocket connected.");
-            // No need to manually send a ping here; let the library handle it.
-            break;
-
-        case WStype_TEXT:
-            Serial.printf("Received: %s\n", payload);
-            break;
-
-        case WStype_PING:
-            Serial.println("Ping received.");
-            break;
-
-        case WStype_PONG:
-            Serial.println("Pong received.");
-            break;
-
-        default:
+            Serial.printf("[IOc] Unhandled SocketIO message type: %d\n", type);
             break;
     }
 }
 
+// Setup function for Socket.IO
 void setupSocketIO() {
-    webSocket.begin(socketServerHost, socketServerPort, "/socket.io/?EIO=4&transport=websocket");
-    webSocket.onEvent(webSocketEvent);
-    webSocket.setReconnectInterval(5000); // Try reconnecting every 5 seconds
+    Serial.println("[SocketIOSetup] Setting up Socket.IO...");
 
-    Serial.println(F("WebSocket client initialized."));
+    // Begin connection
+    socketIO.begin("192.168.1.221", 5000, "/socket.io/?EIO=4");
+
+    // Register event handler
+    socketIO.onEvent(socketIOEvent);
+
+    Serial.println("[SocketIOSetup] Socket.IO setup completed.");
 }
 
-// Function to maintain the WebSocket connection and send periodic heartbeats
+// Loop function for Socket.IO
 void handleSocketIO() {
-    webSocket.loop();
+    socketIO.loop();
 
-    // Send a periodic heartbeat
-    if (millis() - lastPingTime >= 20000) { // Send ping every 10 seconds
-        String pingMessage = "42[\"heartbeat\",{\"status\":\"alive\"}]";
-        webSocket.sendTXT(pingMessage);
+    // Send a ping every 5 seconds
+    if (millis() - lastPingTime > pingInterval) {
         lastPingTime = millis();
-        Serial.println(F("Sent heartbeat ping"));
+
+        DynamicJsonDocument doc(1024);
+        JsonArray array = doc.to<JsonArray>();
+        array.add("ping");
+        array.add("Ping from ESP32");
+
+        String output;
+        serializeJson(doc, output);
+
+        socketIO.sendEVENT(output);
+        Serial.println("[SocketIOSetup] Ping sent to the server.");
     }
 }
-

@@ -1,10 +1,12 @@
-#ifndef SOCKETIOSETUP_H
-#define SOCKETIOSETUP_H
+#ifndef SocketIOSetup_h
+#define SocketIOSetup_h
 
-#include <WebSocketsClient.h>
+#include <SocketIOclient.h>
+
+extern SocketIOclient socketIO;
 
 // Function prototypes
 void setupSocketIO();
 void handleSocketIO();
 
-#endif // SOCKETIOSETUP_H
+#endif
