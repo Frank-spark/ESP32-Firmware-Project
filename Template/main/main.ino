@@ -66,6 +66,11 @@ void updateLEDs() {
                                                 : adjustBrightness(pixels.Color(0, 0, 0), brightness));
         }
     }
+    // First LED pulse white
+    else if (floatLevel <= 5) {
+        pixels.setPixelColor(0, toggleState ? adjustBrightness(pixels.Color(255, 255, 255), brightness)
+                                            : adjustBrightness(pixels.Color(50, 50, 50), brightness));
+    }
     // First two LEDs pulse white
     else if (floatLevel <= 10) {
         pixels.setPixelColor(0, toggleState ? adjustBrightness(pixels.Color(255, 255, 255), brightness)
