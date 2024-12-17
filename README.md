@@ -1,90 +1,165 @@
-### Development Outline for ESP32 Firmware Project
 
-#### 1. **Project Overview**
-The project aims to develop firmware for an ESP32 with PoE (Power over Ethernet) support, enabling dynamic configuration based on an identifier pin. The firmware should be flashable over Ethernet, use socketIO for communication with a JS server on a main control network, and support various hardware configurations for digital I/O (DI, DO), PWM, Mosfet switching, I2C, RS485 Modbus, and analog input.
 
 ---
 
-### 2. **Requirements**
+# ESP32 Firmware Project Template and Development Outline
 
-#### **Firmware Features:**
-- **PoE Support:** Identify and use an ESP32 variant that supports PoE for power and data transmission over Ethernet.
-- **Ethernet Flashing:** Firmware must be flashable over Ethernet for ease of updating in field deployments.
-- **Dynamic Configuration:**
-  - On boot, read an identifier pin connected to a resistor (5V with analog reading) to determine the hardware configuration.
-  - The firmware should adapt its functionality based on this analog value.
-- **Communication Protocol:**
-  - Implement **socketIO** as the communication protocol.
-  - The firmware will interface with a JavaScript server to receive commands and report statuses over the control network.
-- **I2C, RS485 Modbus Support:** Ensure the firmware supports I2C and RS485 Modbus protocols for additional peripherals.
-- **Multi-Protocol Handling:**
-  - Support for DI (Digital Input), DO (Digital Output), PWM (Pulse Width Modulation), and analog inputs.
-  - Mosfet switching support to control high-current loads.
+## Project Overview
 
----
+This project provides a modular firmware template for the ESP32 microcontroller, enabling Power over Ethernet (PoE) support, real-time communication using Socket.IO, and dynamic configuration based on hardware needs. The firmware is designed for scalability, adaptability, and reusability across various use cases such as home automation, industrial automation, or environmental monitoring.
 
-### 3. **Hardware Specifications:**
+Key goals:
+- Develop firmware that supports PoE, dynamic configuration, and multi-protocol handling.
+- Provide a reusable framework for creating ESP32-based applications with features like Over-the-Air (OTA) updates, digital I/O, and communication protocols (I2C, RS485).
+- Enable real-time interaction with a JavaScript server via Socket.IO.
 
-#### **ESP32 Selection:**
-- **ESP32 with PoE support**: Identify an ESP32 variant or module that has built-in PoE capabilities. One potential option is the ESP32-POE-ISO board by Olimex, but more research is required to determine the best fit for the project.
-- **Ethernet Interface**: The ESP32 should have an integrated Ethernet MAC or support external PHY for Ethernet connectivity.
-
-#### **Development Board:**
-- A custom **development board** will be designed to allow testing of each hardware component:
-  - **Digital Inputs (DI)**: Test multiple DI circuits for sensing switches, sensors, or other binary states.
-  - **Digital Outputs (DO)**: Support for driving relays, LEDs, or external logic circuits.
-  - **PWM Outputs**: Enable testing of variable power control circuits (e.g., motor controllers, dimmers).
-  - **Mosfet Switching**: Allow the control of high-power devices (e.g., lights, fans) through Mosfets.
-  - **I2C Communication**: For interfacing with external sensors or peripherals.
-  - **RS485 Modbus**: Enable communication with industrial devices over RS485.
-  - **Analog Input**: Test sensors or voltage levels that provide analog signals.
-  
-Each circuit example on the dev board can be modular and alacarte, allowing easy configuration and testing of individual setups.
+The project uses:
+- [arduinoWebSockets](https://github.com/Links2004/arduinoWebSockets) library for WebSocket communication.
+- **Socket.IO 4.8.1** for server-side real-time communication.
+- [Example Server Code](https://github.com/Frank-spark/ESP32-Firmware-Project/tree/main/Template%2FServer) is available to demonstrate the server-side implementation.
 
 ---
 
-### 4. **Firmware Features:**
+## Features
 
-#### **Dynamic Configuration by Identifier Pin:**
-- **Identifier Pin Setup**: 
-  - A dedicated analog pin will read the voltage (from 0 to 5V) through a resistor, and based on the analog value, the ESP32 will configure its behavior (e.g., number of inputs/outputs, communication protocols enabled, etc.).
-  - This allows flexibility for different hardware configurations by simply changing the identifier pin's resistance.
+1. **Network Connectivity**:
+   - **Wi-Fi or Ethernet**: Flexible network options, including Power over Ethernet (PoE) for production scenarios.
+   - **Ethernet Flashing**: Firmware can be updated over Ethernet for ease of deployment.
 
-#### **SocketIO for Communication:**
-- Use socketIO to communicate with a JavaScript server on a central control network. This will allow:
-  - **Real-time data exchange**: Instant reporting of sensor readings, output states, and other information to the server.
-  - **Command Reception**: The server can send commands (e.g., turn on an output, change PWM duty cycle, etc.) that the ESP32 will execute.
-  
----
+2. **Socket.IO Communication**:
+   - Real-time two-way communication with a JavaScript server for sending and receiving commands.
 
-### 5. **Development Milestones:**
+3. **Dynamic Configuration by Identifier Pin**:
+   - An analog pin reads a voltage (0–5V) to dynamically configure hardware features (e.g., DI/DO, PWM, communication protocols).
 
-#### **Milestone 1: ESP32 and PoE Integration**
-- Identify and procure the ESP32 module with PoE support.
-- Establish basic connectivity with the control network via Ethernet.
+4. **OTA Updates**:
+   - Enables remote updates for the firmware via a web-based interface.
 
-#### **Milestone 2: Firmware Flashing Over Ethernet**
-- Implement the ability to flash firmware over Ethernet.
-- Test Ethernet-based flashing with different network setups.
+5. **Multi-Protocol Handling**:
+   - Supports the following:
+     - **Digital Inputs/Outputs (DI/DO)**: For controlling relays, switches, and sensors.
+     - **PWM**: Variable power control for motors and dimmers.
+     - **Mosfet Switching**: For high-power device control.
+     - **I2C and RS485 Modbus**: Communication with industrial peripherals.
+     - **Analog Inputs**: For sensors or voltage measurements.
 
-#### **Milestone 3: Dynamic Configuration**
-- Develop the dynamic configuration mechanism using the identifier pin.
-- Test the system's adaptability to different configurations based on the analog value.
+6. **Modular Design**:
+   - Well-structured components for easy customization and reuse across multiple applications.
 
-#### **Milestone 4: Hardware Development Board**
-- Design and prototype a development board with circuit examples for DI, DO, PWM, Mosfet, I2C, RS485, and analog inputs.
-- Build and validate the development board for all required functions.
-
-#### **Milestone 5: SocketIO Protocol Implementation**
-- Integrate socketIO into the firmware for communication with the control server.
-- Test real-time control and reporting functionality.
+7. **Example Server**:
+   - Example server code demonstrates how to integrate with a JavaScript backend.  
+   [Example Server Code](https://github.com/Frank-spark/ESP32-Firmware-Project/tree/main/Template%2FServer).
 
 ---
 
-### 6. **Future Considerations:**
-- **Alacarte Board Design**: Based on the circuits tested on the development board, create customizable "a la carte" boards for specific configurations (e.g., a board with more digital inputs or one focused on analog sensing).
-- **Security**: Ensure that the communication via socketIO is secure, possibly through encryption (e.g., TLS).
-- **Modular Firmware**: Keep the firmware modular to easily add support for more protocols or hardware features as needed.
+## Requirements
+
+### Hardware
+- **ESP32 Development Board**:
+  - ESP32 variant with built-in PoE support (e.g., ESP32-POE-ISO by Olimex or similar).
+  - Integrated Ethernet MAC or support for an external PHY for Ethernet communication.
+- **Development Board**:
+  - Modular circuits for DI, DO, PWM, Mosfet switching, I2C, RS485, and analog inputs.
+
+### Software
+1. **Arduino IDE**:
+   - Version 1.8.x or later with ESP32 board support.
+2. **Required Libraries**:
+   - [`arduinoWebSockets`](https://github.com/Links2004/arduinoWebSockets) for WebSocket communication.
+   - [`ArduinoJson`](https://arduinojson.org/) for JSON parsing.
+   - Built-in libraries like `WiFi`, `ArduinoOTA`, and others for ESP32.
+3. **Socket.IO Server**:
+   - Version 4.8.1 or later.  
+   Example server code is provided [here](https://github.com/Frank-spark/ESP32-Firmware-Project/tree/main/Template%2FServer).
+
+---
+
+## File Structure
+
+```
+project/
+├── main.ino                  # Main program file
+├── OTAsetup.cpp              # Handles OTA update setup
+├── OTAsetup.h                # OTA update declarations
+├── SocketIOCalls.cpp         # Handles Socket.IO events
+├── SocketIOCalls.h           # Socket.IO events declarations
+├── SocketIOSetup.cpp         # Socket.IO setup and communication logic
+├── SocketIOSetup.h           # Socket.IO setup declarations
+├── wifisetup.cpp             # Wi-Fi/Ethernet setup logic
+├── wifisetup.h               # Wi-Fi/Ethernet setup declarations
+```
+
+---
+
+## Development Outline
+
+### Firmware Features
+
+1. **PoE Support**:
+   - Use an ESP32 variant with built-in PoE capabilities for power and data over Ethernet.
+
+2. **Ethernet Flashing**:
+   - Simplify deployment with firmware flashing over Ethernet.
+
+3. **Dynamic Configuration**:
+   - Use an analog identifier pin to determine the hardware configuration at boot.
+
+4. **Socket.IO Communication**:
+   - Enable real-time data exchange with a JavaScript server.
+
+5. **Multi-Protocol Handling**:
+   - Support DI, DO, PWM, Mosfet switching, I2C, RS485 Modbus, and analog inputs.
+
+---
+
+### Development Milestones
+
+1. **ESP32 and PoE Integration**
+   - Procure an ESP32 PoE module and establish Ethernet connectivity.
+
+2. **Firmware Flashing Over Ethernet**
+   - Implement Ethernet-based firmware updates.
+
+3. **Dynamic Configuration**
+   - Develop identifier pin logic for dynamic hardware configuration.
+
+4. **Hardware Development Board**
+   - Prototype modular circuits for DI, DO, PWM, Mosfet switching, I2C, RS485, and analog inputs.
+
+5. **Socket.IO Protocol Implementation**
+   - Integrate and test real-time communication with a JavaScript server.
+
+---
+
+## Example Use Cases
+
+### 1. Home Automation
+- **Features**:
+  - Control lights, fans, and appliances remotely.
+  - Event handlers for `setLight` or `toggleFan`.
+
+### 2. Industrial Automation
+- **Features**:
+  - Monitor and control industrial machines using RS485 Modbus.
+  - Use Ethernet connectivity for reliability.
+
+### 3. Sensor Monitoring
+- **Features**:
+  - Collect and report environmental data (e.g., temperature, humidity).
+  - Periodic sensor readings with real-time updates.
+
+---
+
+## Future Considerations
+
+1. **Custom A La Carte Boards**:
+   - Create modular boards for specific hardware configurations.
+
+2. **Security**:
+   - Add encryption for Socket.IO communication (e.g., TLS).
+
+3. **Modular Firmware**:
+   - Ensure firmware is modular for easy integration of new features.
 
 ---
 
