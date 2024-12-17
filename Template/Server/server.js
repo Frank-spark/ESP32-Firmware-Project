@@ -1,26 +1,24 @@
 const express = require('express');
 const http = require('http');
-const { Server } = require('socket.io'); // Import Socket.IO
+const { Server } = require('socket.io');
 
 const app = express();
 const server = http.createServer(app);
+const io = new Server(server);
 
-// Initialize Socket.IO
-const io = new Server(server, {
-    cors: {
-        origin: '*', // Allow all origins for development/testing
-        methods: ['GET', 'POST'], // Specify allowed HTTP methods
-    },
-});
-
-// Socket.IO event handlers
+// Handle Socket.IO connections
 io.on('connection', (socket) => {
-    console.log(`A client connected: ${socket.id}`);
+    console.log(`Client connected: ${socket.id}`);
 
-    // Handle "ping" event
-    socket.on('ping', (message) => {
-        console.log(`Ping received: ${message}`);
-        socket.emit('pong', 'Pong from Server');
+    // Generic message handler: forwards any JSON event and data
+    socket.onAny((eventName, data) => {
+        console.log(`Received Event: ${eventName}, Data: ${JSON.stringify(data)}`);
+
+        // Forward the event and data to all connected clients (except the sender)
+        socket.broadcast.emit(eventName, data);
+
+        // Optionally forward back to the sender as well
+        // io.emit(eventName, data);  // Uncomment this if you want it sent to all clients, including the sender
     });
 
     // Handle disconnection

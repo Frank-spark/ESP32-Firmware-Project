@@ -2,9 +2,8 @@
 #include "WiFiSetup.h"
 #include "OTASetup.h"
 #include "SocketIOSetup.h"
-#include "FloatControl.h" // Include the header file for float and brightness control
 #include <WebServer.h>
-#include "SocketIOCalls.h"
+
 
 #define PIN        21
 #define NUMPIXELS  12
@@ -12,12 +11,11 @@
 
 Adafruit_NeoPixel pixels(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
 
-// Declare float adjustment server on port 4000
-WebServer floatServer(4000);// to be removed after testing
+int brightness = 50;
+int floatLevel = 50;
 
 // Global variables
-int floatLevel = 0;   // Fill level percentage (0-100)
-int brightness = 50; // Default brightness (max 255)
+
 unsigned long lastUpdate = 0; // For non-blocking LED updates
 bool toggleState = false;     // For flashing LEDs
 int flashRate = 500;          // Flashing rate in milliseconds
@@ -103,13 +101,12 @@ void setup() {
     setupWiFiAndWebServer();      // Set up WiFi and Web Server
     setupOTA();                   // Set up OTA
     setupSocketIO();              // Initialize Socket.IO client
-    setupSocketIOCalls(); 
+
     pixels.begin();               // Initialize NeoPixel
     pixels.show();                // Ensure all LEDs are off initially
 
     // Initialize float server handlers
-    setupFloatServer(floatServer, floatLevel, brightness);// to be removed after testing
-    floatServer.begin();          // Start the float server to be removed after testing
+    
 
     // Debugging information
     Serial.println("System initialized.");
@@ -118,17 +115,16 @@ void setup() {
     Serial.print(WiFi.localIP());
     Serial.println(":8080/");
 
-    Serial.println("Access Float and Brightness Control at:");
-    Serial.print("http://");
-    Serial.print(WiFi.localIP());
-    Serial.println(":4000/index");
+
 }
 
 void loop() {
     otaServer.handleClient();    // Handle OTA requests
-    floatServer.handleClient();  // Handle float adjustment requests to be removed after testing
     updateLEDs();    
     handleSocketIO();            // Handle Socket.IO communication
-    handleSocketIOCalls();
+ 
+
+    
+
     delay(10);                   // Small delay for stability
 }
