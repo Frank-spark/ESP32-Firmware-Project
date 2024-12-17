@@ -34,17 +34,21 @@ uint32_t adjustBrightness(uint32_t color, int brightness) {
 }
 
 void updateLEDs() {
-    static int lastFloatLevel = -1; // Store the previous level to minimize updates
-    static unsigned long lastFlashToggle = 0; // Track last toggle for flashing
+    static int lastFloatLevel = -1;                // Store the previous float level
+    static unsigned long lastFlashToggle = 0;      // Track last toggle for flashing
+    static unsigned long lastUpdate = 0;           // Last update time for throttling
+    static int flashCount = 0;                     // Counter for flashing LEDs when full
+    static bool flashDone = false;                 // Track if flashing is complete
+    static bool toggleState = false;               // Toggle state for flashing behavior
 
-    if (floatLevel == lastFloatLevel && millis() - lastUpdate < 100) {
+     if (floatLevel == lastFloatLevel && millis() - lastUpdate < 100) {
         return; // Skip update if nothing has changed or it’s too soon
     }
 
     lastUpdate = millis();
     lastFloatLevel = floatLevel;
 
-    // Handle flashing toggle based on flash rate
+    // Toggle state for flashing behavior
     if (millis() - lastFlashToggle >= flashRate) {
         toggleState = !toggleState;
         lastFlashToggle = millis();
@@ -55,33 +59,49 @@ void updateLEDs() {
         pixels.setPixelColor(i, adjustBrightness(pixels.Color(0, 0, 0), brightness));
     }
 
-    // Handle LED states based on floatLevel
-    if (floatLevel < 5) { // All LEDs flash red for very low level
+    // Very low level: All LEDs flash red
+    if (floatLevel < 5) {
         for (int i = 0; i < NUMPIXELS; i++) {
             pixels.setPixelColor(i, toggleState ? adjustBrightness(pixels.Color(255, 0, 0), brightness)
                                                 : adjustBrightness(pixels.Color(0, 0, 0), brightness));
         }
-    } else if (floatLevel <= 10) { // First two LEDs pulse white
+    }
+    // First two LEDs pulse white
+    else if (floatLevel <= 10) {
         pixels.setPixelColor(0, toggleState ? adjustBrightness(pixels.Color(255, 255, 255), brightness)
                                             : adjustBrightness(pixels.Color(50, 50, 50), brightness));
         pixels.setPixelColor(1, toggleState ? adjustBrightness(pixels.Color(255, 255, 255), brightness)
                                             : adjustBrightness(pixels.Color(50, 50, 50), brightness));
-    } else if (floatLevel <= 25) { // Near-empty state
-        pixels.setPixelColor(0, adjustBrightness(pixels.Color(255, 255, 255), brightness));
-        pixels.setPixelColor(1, toggleState ? adjustBrightness(pixels.Color(255, 255, 255), brightness)
-                                            : adjustBrightness(pixels.Color(50, 50, 50), brightness));
-    } else if (floatLevel < 90) { // Filling state
-        int numLit = map(floatLevel, 0, 100, 0, ACTIVE_LEDS);
-        for (int i = 0; i < numLit; i++) {
+    }
+    // First two LEDs turn green, then illuminate the rest as the level increases
+    else if (floatLevel <= 85) {
+        // First two LEDs solid green
+        pixels.setPixelColor(0, adjustBrightness(pixels.Color(0, 255, 0), brightness));
+        pixels.setPixelColor(1, adjustBrightness(pixels.Color(0, 255, 0), brightness));
+
+        // Illuminate additional LEDs based on floatLevel
+        int numLit = map(floatLevel, 10, 85, 2, ACTIVE_LEDS);
+        for (int i = 2; i < numLit; i++) {
             pixels.setPixelColor(i, adjustBrightness(pixels.Color(0, 255, 0), brightness));
         }
-        if (numLit >= ACTIVE_LEDS - 1) {
+    }
+    // Float level at 85 or higher: Flash all 7 LEDs green 3 times, then stay green
+    else if (floatLevel > 85 && floatLevel < 90) {
+        if (flashCount < 6) { // Flash 3 times (on/off cycle counts as 2)
             for (int i = 0; i < ACTIVE_LEDS; i++) {
-                pixels.setPixelColor(i, toggleState ? adjustBrightness(pixels.Color(255, 255, 0), brightness)
-                                                    : adjustBrightness(pixels.Color(0, 255, 0), brightness));
+                pixels.setPixelColor(i, toggleState ? adjustBrightness(pixels.Color(0, 255, 0), brightness)
+                                                    : adjustBrightness(pixels.Color(0, 0, 0), brightness));
+            }
+            if (!toggleState) flashCount++; // Increment flash count only on "off"
+        } else {
+            // After flashing 3 times, keep all LEDs solid green
+            for (int i = 0; i < ACTIVE_LEDS; i++) {
+                pixels.setPixelColor(i, adjustBrightness(pixels.Color(0, 255, 0), brightness));
             }
         }
-    } else if (floatLevel >= 90) { // Flash even/odd LEDs for over 90
+    }
+    // Float level at or above 90: Flash even/odd LEDs
+    else if (floatLevel >= 90) {
         for (int i = 0; i < NUMPIXELS; i++) {
             if (i % 2 == 0) {
                 pixels.setPixelColor(i, toggleState ? adjustBrightness(pixels.Color(255, 255, 255), brightness)
@@ -93,8 +113,9 @@ void updateLEDs() {
         }
     }
 
-    pixels.show(); // Update LED ring
+    pixels.show(); // Apply changes to LEDs
 }
+
 
 void setup() {
     Serial.begin(115200);         // Initialize serial communication

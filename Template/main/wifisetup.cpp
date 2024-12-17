@@ -2,18 +2,14 @@
 #include <WiFi.h>
 #include <ESPmDNS.h>
 #include <ArduinoOTA.h>
+#include <Update.h>
 
 WebServer otaServer(8080); // Instantiate otaServer on port 8080
-//this will be ethernet in production code using wifi for ease of testing
-// WiFi credentials
-//const char* ssid = "NETGEAR60";
-//const char* password = "";
 
 const char* ssid = "Special Projects-5GHz";
 const char* password = "sprojects1!";
 
 void setupWiFiAndWebServer() {
-    // Connect to WiFi
     Serial.println("Connecting to WiFi...");
     WiFi.begin(ssid, password);
     while (WiFi.status() != WL_CONNECTED) {
@@ -24,25 +20,49 @@ void setupWiFiAndWebServer() {
     Serial.print("IP Address: ");
     Serial.println(WiFi.localIP());
 
-    // Set up OTA
+    // OTA setup
     ArduinoOTA.onStart([]() {
         String type = ArduinoOTA.getCommand() == U_FLASH ? "sketch" : "filesystem";
         Serial.println("Start updating " + type);
     });
-    ArduinoOTA.onEnd([]() {
-        Serial.println("\nEnd");
-    });
-    ArduinoOTA.onError([](ota_error_t error) {
-        Serial.printf("Error[%u]: ", error);
-        if (error == OTA_AUTH_ERROR) Serial.println("Auth Failed");
-        else if (error == OTA_BEGIN_ERROR) Serial.println("Begin Failed");
-        else if (error == OTA_CONNECT_ERROR) Serial.println("Connect Failed");
-        else if (error == OTA_RECEIVE_ERROR) Serial.println("Receive Failed");
-        else if (error == OTA_END_ERROR) Serial.println("End Failed");
-    });
+    ArduinoOTA.onEnd([]() { Serial.println("\nEnd"); });
     ArduinoOTA.begin();
     Serial.println("OTA ready and hosted on port 8080.");
 
-    // Start OTA server
-    otaServer.begin();
+    // Handle firmware upload form
+    otaServer.on("/", HTTP_GET, []() {
+        otaServer.send(200, "text/html", "<html><body><h1>Upload Firmware</h1>"
+                                         "<form method='POST' action='/update' enctype='multipart/form-data'>"
+                                         "<input type='file' name='update'><br>"
+                                         "<input type='submit' value='Update'></form></body></html>");
+    });
+
+    otaServer.on("/update", HTTP_POST, []() {
+        otaServer.send(200, "text/plain", Update.hasError() ? "Update Failed!" : "Update Successful! Rebooting...");
+        delay(100);
+        ESP.restart();
+    }, []() {
+        HTTPUpload& upload = otaServer.upload();
+        if (upload.status == UPLOAD_FILE_START) {
+            Serial.printf("Update Start: %s\n", upload.filename.c_str());
+            if (!Update.begin(UPDATE_SIZE_UNKNOWN)) {
+                Update.printError(Serial);
+            }
+        } else if (upload.status == UPLOAD_FILE_WRITE) {
+            Serial.printf("Updating: %u bytes\n", upload.currentSize);
+            if (Update.write(upload.buf, upload.currentSize) != upload.currentSize) {
+                Update.printError(Serial);
+            }
+        } else if (upload.status == UPLOAD_FILE_END) {
+            if (Update.end(true)) {
+                Serial.printf("Update Success: %u bytes\n", upload.totalSize);
+            } else {
+                Update.printError(Serial);
+            }
+        }
+    });
+
+    otaServer.begin(); // Start OTA server
 }
+
+
