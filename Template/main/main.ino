@@ -18,8 +18,8 @@ int floatLevel = 50;
 
 unsigned long lastUpdate = 0; // For non-blocking LED updates
 bool toggleState = false;     // For flashing LEDs
-int flashRate = 500;          // Flashing rate in milliseconds
-
+int flashRate = 750;          // Flashing rate in milliseconds
+int flashRate2 = 300;
 // Function to set LED brightness
 uint32_t adjustBrightness(uint32_t color, int brightness) {
     uint8_t r = (color >> 16) & 0xFF;
@@ -81,27 +81,27 @@ void updateLEDs() {
     // First two LEDs turn green, then illuminate the rest as the level increases
     else if (floatLevel <= 85) {
         // First two LEDs solid green
-        pixels.setPixelColor(0, adjustBrightness(pixels.Color(0, 255, 0), brightness));
-        pixels.setPixelColor(1, adjustBrightness(pixels.Color(0, 255, 0), brightness));
+        pixels.setPixelColor(0, adjustBrightness(pixels.Color(255, 255, 255), brightness));
+        pixels.setPixelColor(1, adjustBrightness(pixels.Color(255, 255, 255), brightness));
 
         // Illuminate additional LEDs based on floatLevel
         int numLit = map(floatLevel, 10, 85, 2, ACTIVE_LEDS);
         for (int i = 2; i < numLit; i++) {
-            pixels.setPixelColor(i, adjustBrightness(pixels.Color(0, 255, 0), brightness));
+            pixels.setPixelColor(i, adjustBrightness(pixels.Color(255, 255, 255), brightness));
         }
     }
     // Float level at 85 or higher: Flash all 7 LEDs green 3 times, then stay green
     else if (floatLevel > 85 && floatLevel < 90) {
         if (flashCount < 6) { // Flash 3 times (on/off cycle counts as 2)
             for (int i = 0; i < ACTIVE_LEDS; i++) {
-                pixels.setPixelColor(i, toggleState ? adjustBrightness(pixels.Color(0, 255, 0), brightness)
+                pixels.setPixelColor(i, toggleState ? adjustBrightness(pixels.Color(255, 255, 255), brightness)
                                                     : adjustBrightness(pixels.Color(0, 0, 0), brightness));
             }
             if (!toggleState) flashCount++; // Increment flash count only on "off"
         } else {
             // After flashing 3 times, keep all LEDs solid green
             for (int i = 0; i < ACTIVE_LEDS; i++) {
-                pixels.setPixelColor(i, adjustBrightness(pixels.Color(0, 255, 0), brightness));
+                pixels.setPixelColor(i, adjustBrightness(pixels.Color(255, 255, 255), brightness));
             }
         }
     }

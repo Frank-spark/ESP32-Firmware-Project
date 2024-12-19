@@ -1,22 +1,22 @@
 #include "WiFiSetup.h"
-#include <WiFi.h>
 #include <ESPmDNS.h>
 #include <ArduinoOTA.h>
 #include <Update.h>
 
 WebServer otaServer(8080); // Instantiate otaServer on port 8080
 
-const char* ssid = "Special Projects-5GHz";
-const char* password = "sprojects1!";
-
 void setupWiFiAndWebServer() {
-    Serial.println("Connecting to WiFi...");
-    WiFi.begin(ssid, password);
-    while (WiFi.status() != WL_CONNECTED) {
-        delay(500);
-        Serial.print(".");
+    Serial.println("Initializing WiFi Manager...");
+    WiFiManager wm; // Create a WiFiManager instance
+
+    // Automatically try to connect to the last saved network
+    // If it fails, it starts an access point with a captive portal
+    if (!wm.autoConnect("ESP32-Setup", "password123")) { // Access point SSID and password
+        Serial.println("Failed to connect to WiFi, restarting...");
+        delay(3000);
+        ESP.restart();
     }
-    Serial.println("\nWiFi connected!");
+    Serial.println("WiFi connected!");
     Serial.print("IP Address: ");
     Serial.println(WiFi.localIP());
 
@@ -64,5 +64,3 @@ void setupWiFiAndWebServer() {
 
     otaServer.begin(); // Start OTA server
 }
-
-
