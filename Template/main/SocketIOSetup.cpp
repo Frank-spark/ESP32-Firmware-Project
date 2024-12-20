@@ -1,5 +1,5 @@
 #include "SocketIOSetup.h"
-
+#include "GlobalVars.h"
 // Global Socket.IO client
 SocketIOclient socketIO;
 
@@ -20,31 +20,33 @@ void handleSetBrightness(const JsonObject& payload) {
         Serial.println("[SocketIO] Invalid brightness value!");
     }
 }
+void emitFloatLevel(int level) {
+    DynamicJsonDocument doc(1024);
+    JsonArray array = doc.to<JsonArray>();
+    array.add("setFloatLevel");
+    
+    // Prepare payload
+    DynamicJsonDocument payload(1024);
+    payload["level"] = level;
+    array.add(payload);
 
-void handleSetFloatLevel(const JsonObject& payload) {
-    int newLevel = payload["level"] | -1; // Default to -1 if missing
-    if (newLevel >= 0 && newLevel <= 100) {
-        floatLevel = newLevel;
-        Serial.printf("[SocketIO] Float level set to: %d\n", floatLevel);
-    } else {
-        Serial.println("[SocketIO] Invalid float level value!");
-    }
+    String output;
+    serializeJson(doc, output);
+
+    // Send the event
+    socketIO.sendEVENT(output); 
+    Serial.printf("[SocketIO] Float Level Sent: %d\n", level);
 }
 
-// Main event handler for Socket.IO
+
+
+
 void handleSocketIOEvent(const String& eventName, const JsonObject& data) {
     if (eventName == "setBrightness") {
         brightness = data["brightness"] | -1;
         brightness = constrain(brightness, 0, 255);
         Serial.printf("Brightness set to: %d\n", brightness);
         updateLEDs(); // Update LEDs after changing brightness
-    } else if (eventName == "setFloatLevel") {
-        floatLevel = data["level"] | -1;
-        floatLevel = constrain(floatLevel, 0, 100);
-        Serial.printf("Float Level set to: %d\n", floatLevel);
-        updateLEDs(); // Update LEDs after changing float level
-    } else {
-        Serial.printf("Unknown event: %s\n", eventName.c_str());
     }
 }
 

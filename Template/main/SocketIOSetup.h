@@ -9,7 +9,7 @@
 extern SocketIOclient socketIO;
 // Global variables for firmware spicific communication in SocketioSetup.cpp
 extern int brightness;
-extern int floatLevel;
+//extern int floatLevel;
 
 // Function prototypes
 void setupSocketIO();
@@ -18,8 +18,8 @@ void registerSocketIOEvents();
 
 // Specific Socket.IO event handling functions
 void handleSetBrightness(const JsonObject& payload);
-void handleSetFloatLevel(const JsonObject& payload);
 
+void emitFloatLevel(int level);
 // LED Update Function
 void updateLEDs();
 

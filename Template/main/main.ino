@@ -3,24 +3,29 @@
 #include "OTASetup.h"
 #include "SocketIOSetup.h"
 #include <WebServer.h>
-
+#include "GlobalVars.h"
 
 #define PIN        21
 #define NUMPIXELS  12
 #define ACTIVE_LEDS 7  // Number of active LEDs (1 through 7)
-
+#define SENSOR_PIN 34 // Analog input pin connected to the sensor
 Adafruit_NeoPixel pixels(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
 
 int brightness = 50;
-int floatLevel = 50;
-
-// Global variables
-
+int floatLevel = 0;
+const float VCC = 3.3;       // Voltage source (ESP32's 3.3V)
+const int ADC_MAX = 4095;    // ESP32 ADC resolution
+const float R_FIXED = 120.0; // Fixed resistor value in ohms
 unsigned long lastUpdate = 0; // For non-blocking LED updates
 bool toggleState = false;     // For flashing LEDs
 int flashRate = 750;          // Flashing rate in milliseconds
 int flashRate2 = 300;
-// Function to set LED brightness
+const float SENSOR_R_MIN = 33.0;  // Minimum resistance (33 ohms)
+const float SENSOR_R_MAX = 240.0; // Maximum resistance (240 ohms)
+const int numSamples = 10;
+int adcReadings[numSamples];
+int sampleIndex = 0;
+
 uint32_t adjustBrightness(uint32_t color, int brightness) {
     uint8_t r = (color >> 16) & 0xFF;
     uint8_t g = (color >> 8) & 0xFF;
@@ -33,6 +38,26 @@ uint32_t adjustBrightness(uint32_t color, int brightness) {
     return pixels.Color(r, g, b);
 }
 
+// Function to calculate resistance from ADC value
+float calculateResistance(int adcValue) {
+    float voltage = (adcValue / (float)ADC_MAX) * VCC;
+    return (R_FIXED * (VCC - voltage)) / voltage;
+}
+int getSmoothedADC() {
+    adcReadings[sampleIndex] = analogRead(SENSOR_PIN);
+    sampleIndex = (sampleIndex + 1) % numSamples;
+
+    long sum = 0;
+    for (int i = 0; i < numSamples; i++) sum += adcReadings[i];
+    return sum / numSamples;
+}
+// Function to map resistance to float level (0-100%)
+float mapResistanceToFloatLevel(float resistance) {
+    if (resistance < SENSOR_R_MIN) resistance = SENSOR_R_MIN;
+    if (resistance > SENSOR_R_MAX) resistance = SENSOR_R_MAX;
+    return map(resistance, SENSOR_R_MAX, SENSOR_R_MIN, 0, 100);
+}
+
 void updateLEDs() {
     static int lastFloatLevel = -1;                // Store the previous float level
     static unsigned long lastFlashToggle = 0;      // Track last toggle for flashing
@@ -41,9 +66,16 @@ void updateLEDs() {
     static bool flashDone = false;                 // Track if flashing is complete
     static bool toggleState = false;               // Toggle state for flashing behavior
 
-     if (floatLevel == lastFloatLevel && millis() - lastUpdate < 100) {
-        return; // Skip update if nothing has changed or it’s too soon
-    }
+    int adcValue = getSmoothedADC();
+    float resistance = calculateResistance(adcValue);
+    floatLevel = mapResistanceToFloatLevel(resistance);
+
+    if (floatLevel != lastFloatLevel)  {
+    emitFloatLevel((int)floatLevel); // Emit float level change
+    Serial.printf("[LED Update] Float Level Changed: %.2f\n", floatLevel);
+    lastFloatLevel = floatLevel; // Update lastFloatLevel here
+}
+
 
     lastUpdate = millis();
     lastFloatLevel = floatLevel;
@@ -52,6 +84,7 @@ void updateLEDs() {
     if (millis() - lastFlashToggle >= flashRate) {
         toggleState = !toggleState;
         lastFlashToggle = millis();
+        
     }
 
     // Reset all LEDs
@@ -59,54 +92,40 @@ void updateLEDs() {
         pixels.setPixelColor(i, adjustBrightness(pixels.Color(0, 0, 0), brightness));
     }
 
-    // Very low level: All LEDs flash red
+    // LED behavior based on floatLevel (unchanged logic)
     if (floatLevel < 5) {
         for (int i = 0; i < NUMPIXELS; i++) {
             pixels.setPixelColor(i, toggleState ? adjustBrightness(pixels.Color(255, 0, 0), brightness)
                                                 : adjustBrightness(pixels.Color(0, 0, 0), brightness));
         }
-    }
-    // First LED pulse white
-    else if (floatLevel <= 5) {
+    } else if (floatLevel <= 5) {
         pixels.setPixelColor(0, toggleState ? adjustBrightness(pixels.Color(255, 255, 255), brightness)
                                             : adjustBrightness(pixels.Color(50, 50, 50), brightness));
-    }
-    // First two LEDs pulse white
-    else if (floatLevel <= 10) {
+    } else if (floatLevel <= 10) {
         pixels.setPixelColor(0, toggleState ? adjustBrightness(pixels.Color(255, 255, 255), brightness)
                                             : adjustBrightness(pixels.Color(50, 50, 50), brightness));
         pixels.setPixelColor(1, toggleState ? adjustBrightness(pixels.Color(255, 255, 255), brightness)
                                             : adjustBrightness(pixels.Color(50, 50, 50), brightness));
-    }
-    // First two LEDs turn green, then illuminate the rest as the level increases
-    else if (floatLevel <= 85) {
-        // First two LEDs solid green
+    } else if (floatLevel <= 85) {
         pixels.setPixelColor(0, adjustBrightness(pixels.Color(255, 255, 255), brightness));
         pixels.setPixelColor(1, adjustBrightness(pixels.Color(255, 255, 255), brightness));
-
-        // Illuminate additional LEDs based on floatLevel
         int numLit = map(floatLevel, 10, 85, 2, ACTIVE_LEDS);
         for (int i = 2; i < numLit; i++) {
             pixels.setPixelColor(i, adjustBrightness(pixels.Color(255, 255, 255), brightness));
         }
-    }
-    // Float level at 85 or higher: Flash all 7 LEDs green 3 times, then stay green
-    else if (floatLevel > 85 && floatLevel < 90) {
-        if (flashCount < 6) { // Flash 3 times (on/off cycle counts as 2)
+    } else if (floatLevel > 85 && floatLevel < 90) {
+        if (flashCount < 6) {
             for (int i = 0; i < ACTIVE_LEDS; i++) {
                 pixels.setPixelColor(i, toggleState ? adjustBrightness(pixels.Color(255, 255, 255), brightness)
                                                     : adjustBrightness(pixels.Color(0, 0, 0), brightness));
             }
-            if (!toggleState) flashCount++; // Increment flash count only on "off"
+            if (!toggleState) flashCount++;
         } else {
-            // After flashing 3 times, keep all LEDs solid green
             for (int i = 0; i < ACTIVE_LEDS; i++) {
                 pixels.setPixelColor(i, adjustBrightness(pixels.Color(255, 255, 255), brightness));
             }
         }
-    }
-    // Float level at or above 90: Flash even/odd LEDs
-    else if (floatLevel >= 90) {
+    } else if (floatLevel >= 90) {
         for (int i = 0; i < NUMPIXELS; i++) {
             if (i % 2 == 0) {
                 pixels.setPixelColor(i, toggleState ? adjustBrightness(pixels.Color(255, 255, 255), brightness)
@@ -117,9 +136,11 @@ void updateLEDs() {
             }
         }
     }
-
+    
     pixels.show(); // Apply changes to LEDs
+    
 }
+
 
 
 void setup() {
@@ -127,7 +148,7 @@ void setup() {
     setupWiFiAndWebServer();      // Set up WiFi and Web Server
     setupOTA();                   // Set up OTA
     setupSocketIO();              // Initialize Socket.IO client
-
+    analogReadResolution(12); // 12-bit resolution
     pixels.begin();               // Initialize NeoPixel
     pixels.show();                // Ensure all LEDs are off initially
 
